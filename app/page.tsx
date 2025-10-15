@@ -145,12 +145,12 @@ export default function Home() {
       )}
 
       <div className={styles.container}>
-'''          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Lista de Beneficiarios</h2>
             <button onClick={() => window.print()} className={`${styles.button} ${styles.buttonSecondary}`}>
               Imprimir
             </button>
-          </div>'''
+          </div>
           {isLoading && !beneficiarios.length && <p>Cargando lista...</p>}
           <table className={styles.table}>
             <thead>
@@ -182,3 +182,4 @@ export default function Home() {
         </div>
     </main>
   );
+}
