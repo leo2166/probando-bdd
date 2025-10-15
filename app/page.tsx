@@ -1,9 +1,9 @@
-'use client';
+''''use client';
 
-import { useState } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import styles from './page.module.css';
 
-// Nueva interfaz para los datos de beneficiarios
+// Interfaz para los datos de beneficiarios
 interface Beneficiario {
   id: number;
   nombre_completo: string;
@@ -12,21 +12,29 @@ interface Beneficiario {
   nombre_finado: string | null;
 }
 
+const initialFormState = {
+    id: 0,
+    nombre_completo: '',
+    cedula: '',
+    condicion: '',
+    nombre_finado: '',
+};
+
 export default function Home() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Inicia en true para la carga inicial
   const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState<any>(initialFormState);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const handleTestDb = async () => {
+  const fetchBeneficiarios = async () => {
     setIsLoading(true);
     setError(null);
-    setBeneficiarios([]);
-
     try {
-      const response = await fetch('/api/test-db');
+      const response = await fetch('/api/beneficiarios');
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Algo salió mal');
+        throw new Error(errorData.error || 'Algo salió mal al cargar datos');
       }
       const data = await response.json();
       setBeneficiarios(data.rows);
@@ -37,66 +45,142 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    fetchBeneficiarios();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    const url = isEditing ? `/api/beneficiarios/${form.id}` : '/api/beneficiarios';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    try {
+        const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Error al ${isEditing ? 'actualizar' : 'crear'}`);
+        }
+        setForm(initialFormState);
+        setIsEditing(false);
+        await fetchBeneficiarios();
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleEditClick = (beneficiario: Beneficiario) => {
+    setIsEditing(true);
+    setForm(beneficiario);
+    window.scrollTo(0, 0); // Sube al inicio de la página para ver el formulario
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setForm(initialFormState);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este beneficiario?')) {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/beneficiarios/${id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al eliminar');
+            }
+            await fetchBeneficiarios();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
+        } finally {
+            setIsLoading(false);
+        }
+    }
+  };
+
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <h1>Prueba de Base de Datos con Vercel Postgres</h1>
-        <p>
-          Haz clic en el botón para crear/conectar a la tabla <strong>Beneficiarios</strong>, insertar dos registros de ejemplo y mostrar los resultados.
-        </p>
-        <p>
-          (Asegúrate de haber creado el archivo <code>.env.local</code> con las credenciales de tu base de datos).
-        </p>
+        <h1>Gestión de Beneficiarios</h1>
       </div>
 
-      <div className={styles.center}>
-        <button onClick={handleTestDb} disabled={isLoading} style={{ padding: '10px 20px', fontSize: '16px' }}>
-          {isLoading ? 'Probando...' : 'Probar Conexión y Cargar Datos'}
-        </button>
+      <div className={`${styles.container} ${styles.formContainer}`}>
+        <h2>{isEditing ? 'Editando Beneficiario' : 'Añadir Nuevo Beneficiario'}</h2>
+        <form onSubmit={handleSubmit} className={styles.form}>
+            <input type="text" name="nombre_completo" value={form.nombre_completo} onChange={handleInputChange} placeholder="Nombre Completo" required className={styles.input}/>
+            <input type="text" name="cedula" value={form.cedula} onChange={handleInputChange} placeholder="Cédula" required className={styles.input}/>
+            <select name="condicion" value={form.condicion} onChange={handleInputChange} required className={styles.select}>
+                <option value="">Seleccione Condición</option>
+                <option value="Jubilado">Jubilado</option>
+                <option value="Sobreviviente">Sobreviviente</option>
+            </select>
+            <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
+            <div className={styles.buttonGroup}>
+                <button type="submit" disabled={isLoading} className={`${styles.button} ${styles.buttonPrimary}`}>
+                    {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Guardar')}
+                </button>
+                {isEditing && (
+                    <button type="button" onClick={cancelEdit} className={`${styles.button} ${styles.buttonSecondary}`}>
+                        Cancelar
+                    </button>
+                )}
+            </div>
+        </form>
       </div>
 
       {error && (
-        <div style={{ marginTop: '20px', color: 'red', width: '100%', maxWidth: '800px' }}>
+        <div className={styles.error}>
           <h2>Error</h2>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{error}</pre>
-          <p>
-            <strong>Posibles causas:</strong>
-          </p>
-          <ul>
-            <li>El archivo <code>.env.local</code> no existe o está mal configurado.</li>
-            <li>Las credenciales de la base de datos son incorrectas.</li>
-            <li>Hay un problema de red con la base de datos de Vercel.</li>
-          </ul>
+          <pre>{error}</pre>
         </div>
       )}
 
-      {beneficiarios.length > 0 && (
-        <div style={{ marginTop: '40px', width: '100%', maxWidth: '800px' }}>
-          <h2>Resultados de la Tabla &quot;Beneficiarios&quot;:</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+      <div className={styles.container}>
+'''          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Lista de Beneficiarios</h2>
+            <button onClick={() => window.print()} className={`${styles.button} ${styles.buttonSecondary}`}>
+              Imprimir
+            </button>
+          </div>'''
+          {isLoading && !beneficiarios.length && <p>Cargando lista...</p>}
+          <table className={styles.table}>
             <thead>
-              <tr style={{ background: '#eee' }}>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>ID</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Nombre Completo</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Cédula</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Condición</th>
-                <th style={{ border: '1px solid #ddd', padding: '8px' }}>Nombre Finado</th>
+              <tr>
+                <th className={styles.th}>ID</th>
+                <th className={styles.th}>Nombre Completo</th>
+                <th className={styles.th}>Cédula</th>
+                <th className={styles.th}>Condición</th>
+                <th className={styles.th}>Nombre Finado</th>
+                <th className={styles.th}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {beneficiarios.map((b) => (
                 <tr key={b.id}>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{b.id}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{b.nombre_completo}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{b.cedula}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{b.condicion}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '8px' }}>{b.nombre_finado || 'N/A'}</td>
+                  <td className={styles.td}>{b.id}</td>
+                  <td className={styles.td}>{b.nombre_completo}</td>
+                  <td className={styles.td}>{b.cedula}</td>
+                  <td className={styles.td}>{b.condicion}</td>
+                  <td className={styles.td}>{b.nombre_finado || 'N/A'}</td>
+                  <td className={`${styles.td} ${styles.actionsCell}`}>
+                    <button onClick={() => handleEditClick(b)} className={`${styles.button} ${styles.buttonSecondary}`}>Editar</button>
+                    <button onClick={() => handleDelete(b.id)} className={`${styles.button} ${styles.buttonDanger}`}>Eliminar</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
     </main>
   );
 }
+'''
