@@ -64,4 +64,3 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         return NextResponse.json({ error: (error as Error).message }, { status: 500 });
     }
 }
-'''
