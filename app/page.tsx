@@ -72,7 +72,7 @@ export default function Home() {
 
       {beneficiarios.length > 0 && (
         <div style={{ marginTop: '40px', width: '100%', maxWidth: '800px' }}>
-          <h2>Resultados de la Tabla "Beneficiarios":</h2>
+          <h2>Resultados de la Tabla &quot;Beneficiarios&quot;:</h2>
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
             <thead>
               <tr style={{ background: '#eee' }}>

@@ -2,9 +2,8 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
-    const tableName = 'Beneficiarios';
 
     // Crear la tabla con la nueva estructura si no existe
     await sql`
