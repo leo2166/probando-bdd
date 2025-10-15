@@ -1,4 +1,4 @@
-''''use client';
+'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
 import styles from './page.module.css';
@@ -182,5 +182,3 @@ export default function Home() {
         </div>
     </main>
   );
-}
-'''

@@ -1,4 +1,4 @@
-'''import { sql } from '@vercel/postgres';
+import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 
 // Handler para OBTENER todos los beneficiarios
