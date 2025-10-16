@@ -50,7 +50,7 @@
 }
 
 .button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
   font-size: 1rem;
   border-radius: 6px;
   border: none;
@@ -58,7 +58,6 @@
   transition: background-color 0.2s ease;
   font-weight: 500;
   color: white;
-  flex: 1;
 }
 
 .buttonPrimary {
@@ -81,6 +80,14 @@
 }
 .buttonDanger:hover {
   background-color: var(--danger-hover-color);
+}
+
+.buttonPrint {
+  background-color: #8A2BE2; /* Un tono de violeta */
+}
+
+.buttonPrint:hover {
+  background-color: #7024b8; /* Un violeta más oscuro para el hover */
 }
 
 .button[disabled] {
@@ -122,4 +129,38 @@
 
 .error h2 {
     margin-bottom: 0.5rem;
+}
+
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #8A2BE2; /* Violeta */
+  color: white; /* Letras blancas */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3); /* Borde gris claro */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: white; /* Borde que gira en blanco */
+  animation: spin 1s ease infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

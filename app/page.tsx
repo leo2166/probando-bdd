@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
+import jsPDF from 'jspdf';
 import styles from './page.module.css';
 
 // Interfaz para los datos de beneficiarios
@@ -32,6 +33,11 @@ export default function Home() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isEditing, setIsEditing] = useState(false);
 
+const extractNumber = (cedulaString: string): number => {
+  const match = cedulaString.match(/\d+/); // Extracts the first sequence of digits
+  return match ? parseInt(match[0], 10) : 0;
+};
+
   const fetchBeneficiarios = async () => {
     setIsLoading(true);
     setError(null);
@@ -42,7 +48,8 @@ export default function Home() {
         throw new Error(errorData.error || 'Algo salió mal al cargar datos');
       }
       const data = await response.json();
-      setBeneficiarios(data.rows);
+      const sortedData = data.rows.sort((a: Beneficiario, b: Beneficiario) => extractNumber(a.cedula) - extractNumber(b.cedula));
+      setBeneficiarios(sortedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
     } finally {
@@ -112,8 +119,101 @@ export default function Home() {
     }
   };
 
+  const generatePdfReport = (data: Beneficiario[]) => {
+    const doc = new jsPDF('p', 'pt', 'letter'); // 'p' for portrait, 'pt' for points, 'letter' for Letter size
+    const margin = 40; // Margins for the page
+    let y = margin; // Y position for content
+
+    // Set font for titles
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Asociacion de Jubilado', margin, y);
+    y += 20;
+
+    doc.setFontSize(12);
+    doc.text('Listado de Socios y Sobrevivientes', margin, y);
+    y += 15;
+
+    // Add Date and Time
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const formattedTime = now.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    doc.text(`Fecha: ${formattedDate} - Hora: ${formattedTime}`, margin, y);
+    y += 25; // Space after date/time
+
+    // Table Headers
+    const headers = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado'];
+    const columnWidths = [30, 150, 80, 80, 150]; // Adjust as needed
+    let x = margin;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    headers.forEach((header, index) => {
+      doc.text(header, x, y);
+      x += columnWidths[index];
+    });
+    y += 15;
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, doc.internal.pageSize.width - margin, y); // Line under headers
+    y += 10;
+
+    // Table Data
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    data.forEach((beneficiario, index) => {
+      if (y > doc.internal.pageSize.height - margin) { // Check for page break
+        doc.addPage();
+        y = margin;
+        // Re-add headers on new page
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        x = margin;
+        headers.forEach((header, hIndex) => {
+          doc.text(header, x, y);
+          x += columnWidths[hIndex];
+        });
+        y += 15;
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, doc.internal.pageSize.width - margin, y);
+        y += 10;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+      }
+
+      x = margin;
+      doc.text((index + 1).toString(), x, y);
+      x += columnWidths[0];
+      doc.text(beneficiario.nombre_completo, x, y);
+      x += columnWidths[1];
+      doc.text(beneficiario.cedula, x, y);
+      x += columnWidths[2];
+      doc.text(beneficiario.condicion === 'Jubilado' ? 'Jubilado/a' : beneficiario.condicion, x, y);
+      x += columnWidths[3];
+      doc.text(beneficiario.nombre_finado || 'N/A', x, y);
+      y += 15; // Line height
+    });
+
+    // Open PDF in new window
+    doc.output('dataurlnewwindow');
+  };
+
   return (
     <main className={styles.main}>
+      {isLoading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.spinner}></div>
+          <p>Actualizando Base de Datos...</p>
+        </div>
+      )}
       <div className={styles.description}>
         <h1>Gestión de Beneficiarios</h1>
       </div>
@@ -125,12 +225,12 @@ export default function Home() {
             <input type="text" name="cedula" value={form.cedula} onChange={handleInputChange} placeholder="Cédula" required className={styles.input}/>
             <select name="condicion" value={form.condicion} onChange={handleInputChange} required className={styles.select}>
                 <option value="">Seleccione Condición</option>
-                <option value="Jubilado">Jubilado</option>
+                <option value="Jubilado">Jubilado/a</option>
                 <option value="Sobreviviente">Sobreviviente</option>
             </select>
             <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
             <div className={styles.buttonGroup}>
-                <button type="submit" disabled={isLoading} className={`${styles.button} ${styles.buttonPrimary}`}>
+                <button type="submit" disabled={isLoading || !form.nombre_completo || !form.cedula} className={`${styles.button} ${styles.buttonPrimary}`}>
                     {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Guardar')}
                 </button>
                 {isEditing && (
@@ -152,7 +252,7 @@ export default function Home() {
       <div className={styles.container}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Lista de Beneficiarios</h2>
-            <button onClick={() => window.print()} className={`${styles.button} ${styles.buttonSecondary}`}>
+            <button onClick={() => generatePdfReport(beneficiarios)} className={`${styles.button} ${styles.buttonPrint}`}>
               Imprimir
             </button>
           </div>
@@ -160,7 +260,7 @@ export default function Home() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th className={styles.th}>ID</th>
+                <th className={styles.th}>#</th>
                 <th className={styles.th}>Nombre Completo</th>
                 <th className={styles.th}>Cédula</th>
                 <th className={styles.th}>Condición</th>
@@ -169,15 +269,14 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {beneficiarios.map((b) => (
+              {beneficiarios.map((b, index) => (
                 <tr key={b.id}>
-                  <td className={styles.td}>{b.id}</td>
+                  <td className={styles.td}>{index + 1}</td>
                   <td className={styles.td}>{b.nombre_completo}</td>
                   <td className={styles.td}>{b.cedula}</td>
-                  <td className={styles.td}>{b.condicion}</td>
+                  <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
                   <td className={styles.td}>{b.nombre_finado || 'N/A'}</td>
-                  <td className={`${styles.td} ${styles.actionsCell}`}>
-                    <button onClick={() => handleEditClick(b)} className={`${styles.button} ${styles.buttonSecondary}`}>Editar</button>
+                  <td className={`${styles.td} ${styles.actionsCell}`}>                    <button onClick={() => handleEditClick(b)} className={`${styles.button} ${styles.buttonSecondary}`}>Editar</button>
                     <button onClick={() => handleDelete(b.id)} className={`${styles.button} ${styles.buttonDanger}`}>Eliminar</button>
                   </td>
                 </tr>

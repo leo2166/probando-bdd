@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 // Handler para OBTENER todos los beneficiarios
 export async function GET() {
   try {
-    const { rows } = await sql`SELECT * FROM Beneficiarios ORDER BY id ASC;`;
+    const { rows } = await sql`SELECT * FROM Beneficiarios ORDER BY CAST(SUBSTRING(cedula FROM 3) AS INT) ASC;`;
     return NextResponse.json({ rows }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
