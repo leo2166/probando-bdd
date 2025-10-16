@@ -2,7 +2,10 @@ import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 
 // Handler para OBTENER un único beneficiario por ID
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+import { NextRequest, NextResponse } from 'next/server';
+
+// Handler para OBTENER un único beneficiario por ID
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         const { rows } = await sql`SELECT * FROM Beneficiarios WHERE id = ${Number(params.id)};`;
         if (rows.length === 0) {

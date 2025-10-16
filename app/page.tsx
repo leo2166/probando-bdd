@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import styles from './page.module.css';
 
@@ -38,7 +38,7 @@ const extractNumber = (cedulaString: string): number => {
   return match ? parseInt(match[0], 10) : 0;
 };
 
-  const fetchBeneficiarios = async () => {
+  const fetchBeneficiarios = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -55,7 +55,7 @@ const extractNumber = (cedulaString: string): number => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setBeneficiarios, setIsLoading, setError]);
 
   useEffect(() => {
     fetchBeneficiarios();
