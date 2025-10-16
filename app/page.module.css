@@ -126,7 +126,7 @@
 
 /* Estilos para Impresión */
 @media print {
-  body {
+  :global(body) {
     background: none;
   }
 

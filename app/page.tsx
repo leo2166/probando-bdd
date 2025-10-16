@@ -12,8 +12,13 @@ interface Beneficiario {
   nombre_finado: string | null;
 }
 
-const initialFormState = {
-    id: 0,
+// Tipo para el estado del formulario, con id opcional y nombre_finado como string
+type FormState = Omit<Beneficiario, 'id' | 'nombre_finado'> & {
+  id?: number;
+  nombre_finado: string;
+}
+
+const initialFormState: FormState = {
     nombre_completo: '',
     cedula: '',
     condicion: '',
@@ -24,7 +29,7 @@ export default function Home() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Inicia en true para la carga inicial
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<any>(initialFormState);
+  const [form, setForm] = useState<FormState>(initialFormState);
   const [isEditing, setIsEditing] = useState(false);
 
   const fetchBeneficiarios = async () => {
@@ -79,7 +84,7 @@ export default function Home() {
 
   const handleEditClick = (beneficiario: Beneficiario) => {
     setIsEditing(true);
-    setForm(beneficiario);
+    setForm({ ...beneficiario, nombre_finado: beneficiario.nombre_finado || '' });
     window.scrollTo(0, 0); // Sube al inicio de la página para ver el formulario
   };
 
