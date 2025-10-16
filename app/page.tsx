@@ -59,7 +59,7 @@ const extractNumber = (cedulaString: string): number => {
 
   useEffect(() => {
     fetchBeneficiarios();
-  }, []);
+  }, [fetchBeneficiarios]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

@@ -2,7 +2,7 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 
-export async function GET(_request: Request) {
+export async function GET() {
   try {
 
     // Crear la tabla con la nueva estructura si no existe

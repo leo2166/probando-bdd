@@ -41,7 +41,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ beneficiario: rows[0] }, { status: 200 });
 
   } catch (error) {
-    if ((error as any).code === '23505') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === '23505') {
         return NextResponse.json({ error: `La cédula ya existe.` }, { status: 409 });
     }
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
