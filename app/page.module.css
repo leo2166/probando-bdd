@@ -123,31 +123,3 @@
 .error h2 {
     margin-bottom: 0.5rem;
 }
-
-/* Estilos para Impresión */
-@media print {
-  :global(body) {
-    background: none;
-  }
-
-  .main {
-    padding: 0;
-    min-height: 0;
-  }
-
-  .description, .formContainer, .actionsCell button, .error {
-    display: none;
-  }
-
-  .container {
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-    margin: 0;
-  }
-
-  .table {
-    margin-top: 0;
-  }
-}
-/* Forzar re-compilación en Vercel */
