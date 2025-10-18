@@ -26,10 +26,9 @@ const initialFormState: FormState = {
     nombre_finado: '',
 };
 
-export default async function EditBeneficiarioPage({ params }: { params: { id: string | Promise<string> } }) {
+export default function EditBeneficiarioPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const resolvedParams = React.use(Promise.resolve(params));
-  const { id } = resolvedParams;
+  const { id } = params;
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
