@@ -1,7 +1,4 @@
 import { sql } from '@vercel/postgres';
-import { NextResponse } from 'next/server';
-
-// Handler para OBTENER un único beneficiario por ID
 import { NextRequest, NextResponse } from 'next/server';
 
 // Handler para OBTENER un único beneficiario por ID

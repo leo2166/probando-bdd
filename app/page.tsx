@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
 import styles from './page.module.css';
 
@@ -27,11 +28,19 @@ const initialFormState: FormState = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Inicia en true para la carga inicial
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedBeneficiarios, setSelectedBeneficiarios] = useState<number[]>([]);
+
+  const handleSelectBeneficiario = (id: number) => {
+    setSelectedBeneficiarios(prev =>
+      prev.includes(id) ? prev.filter(beneficiarioId => beneficiarioId !== id) : [...prev, id]
+    );
+  };
 
 const extractNumber = (cedulaString: string): number => {
   const match = cedulaString.match(/\d+/); // Extracts the first sequence of digits
@@ -89,33 +98,38 @@ const extractNumber = (cedulaString: string): number => {
     }
   };
 
-  const handleEditClick = (beneficiario: Beneficiario) => {
-    setIsEditing(true);
-    setForm({ ...beneficiario, nombre_finado: beneficiario.nombre_finado || '' });
-    window.scrollTo(0, 0); // Sube al inicio de la página para ver el formulario
-  };
-
   const cancelEdit = () => {
     setIsEditing(false);
     setForm(initialFormState);
+    setSelectedBeneficiarios([]); // Clear selection on cancel
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este beneficiario?')) {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/beneficiarios/${id}`, { method: 'DELETE' });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Error al eliminar');
-            }
-            await fetchBeneficiarios();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
-        } finally {
-            setIsLoading(false);
+  const handleEditSelected = () => {
+    if (selectedBeneficiarios.length === 1) {
+      const beneficiarioId = selectedBeneficiarios[0];
+      router.push(`/edit-beneficiario/${beneficiarioId}`);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedBeneficiarios.length > 0 && window.confirm('¿Estás seguro de que quieres eliminar los beneficiarios seleccionados?')) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        for (const id of selectedBeneficiarios) {
+          const response = await fetch(`/api/beneficiarios/${id}`, { method: 'DELETE' });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Error al eliminar beneficiario con ID ${id}`);
+          }
         }
+        setSelectedBeneficiarios([]); // Clear selection after deletion
+        await fetchBeneficiarios();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -255,30 +269,48 @@ const extractNumber = (cedulaString: string): number => {
             <button onClick={() => generatePdfReport(beneficiarios)} className={`${styles.button} ${styles.buttonPrint}`}>
               Imprimir
             </button>
+            <button
+              onClick={handleEditSelected}
+              disabled={selectedBeneficiarios.length !== 1}
+              className={`${styles.button} ${styles.buttonSecondary}`}
+            >
+              Editar Seleccionado
+            </button>
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedBeneficiarios.length === 0}
+              className={`${styles.button} ${styles.buttonDanger}`}
+            >
+              Eliminar Seleccionados
+            </button>
           </div>
           {isLoading && !beneficiarios.length && <p>Cargando lista...</p>}
           <table className={styles.table}>
             <thead>
               <tr>
+                <th className={styles.th}>Seleccionar</th>
                 <th className={styles.th}>#</th>
                 <th className={styles.th}>Nombre Completo</th>
                 <th className={styles.th}>Cédula</th>
                 <th className={styles.th}>Condición</th>
                 <th className={styles.th}>Nombre Finado</th>
-                <th className={styles.th}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {beneficiarios.map((b, index) => (
                 <tr key={b.id}>
+                  <td className={styles.td}>
+                    <input
+                      type="checkbox"
+                      checked={selectedBeneficiarios.includes(b.id)}
+                      onChange={() => handleSelectBeneficiario(b.id)}
+                    />
+                  </td>
                   <td className={styles.td}>{index + 1}</td>
                   <td className={styles.td}>{b.nombre_completo}</td>
                   <td className={styles.td}>{b.cedula}</td>
                   <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
                   <td className={styles.td}>{b.nombre_finado || 'N/A'}</td>
-                  <td className={`${styles.td} ${styles.actionsCell}`}>                    <button onClick={() => handleEditClick(b)} className={`${styles.button} ${styles.buttonSecondary}`}>Editar</button>
-                    <button onClick={() => handleDelete(b.id)} className={`${styles.button} ${styles.buttonDanger}`}>Eliminar</button>
-                  </td>
                 </tr>
               ))}
             </tbody>
