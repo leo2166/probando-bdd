@@ -26,7 +26,8 @@ const initialFormState: FormState = {
     nombre_finado: '',
 };
 
-export default function EditBeneficiarioPage({ params }: { params: { id: string } }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function EditBeneficiarioPage({ params }: any) {
   const router = useRouter();
   const { id } = params;
   const [form, setForm] = useState<FormState>(initialFormState);
