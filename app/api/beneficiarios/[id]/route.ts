@@ -2,7 +2,8 @@ import { sql } from '@vercel/postgres';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Handler para OBTENER un único beneficiario por ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
+    const { params } = context;
     try {
         const { rows } = await sql`SELECT * FROM Beneficiarios WHERE id = ${Number(params.id)};`;
         if (rows.length === 0) {
@@ -15,7 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // Handler para ACTUALIZAR (Modificar) un beneficiario
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context: { params: { id: string } }) {
+  const { params } = context;
   try {
     const { nombre_completo, cedula, condicion, nombre_finado } = await request.json();
     const id = Number(params.id);
@@ -49,7 +51,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 // Handler para ELIMINAR un beneficiario
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: { id: string } }) {
+    const { params } = context;
     try {
         const id = Number(params.id);
         const { rowCount } = await sql`DELETE FROM Beneficiarios WHERE id = ${id};`;
