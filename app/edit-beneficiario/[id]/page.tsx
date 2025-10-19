@@ -12,11 +12,17 @@ interface Beneficiario {
   cedula: string;
   condicion: string;
   nombre_finado: string | null;
+  fecha_nacimiento: string | null;
+  fecha_fallecimiento: string | null;
+  telefono: string | null;
 }
 
-type FormState = Omit<Beneficiario, 'id' | 'nombre_finado'> & {
+type FormState = Omit<Beneficiario, 'id' | 'nombre_finado' | 'fecha_nacimiento' | 'fecha_fallecimiento' | 'telefono'> & {
   id?: number;
   nombre_finado: string;
+  fecha_nacimiento: string;
+  fecha_fallecimiento: string;
+  telefono: string;
 };
 
 const initialFormState: FormState = {
@@ -24,12 +30,16 @@ const initialFormState: FormState = {
     cedula: '',
     condicion: '',
     nombre_finado: '',
+    fecha_nacimiento: '',
+    fecha_fallecimiento: '',
+    telefono: '',
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function EditBeneficiarioPage({ params }: any) {
   const router = useRouter();
-  const { id } = params;
+  const resolvedParams = React.use(params);
+  const { id } = resolvedParams;
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +53,7 @@ export default function EditBeneficiarioPage({ params }: any) {
           const response = await fetch(`/api/beneficiarios/${id}`);
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Beneficiario no encontrado');
+            throw new Error(errorData.error || 'Asociado o Sobreviviente no encontrado');
           }
           const data = await response.json();
           setForm({
@@ -73,6 +83,14 @@ export default function EditBeneficiarioPage({ params }: any) {
     setIsLoading(true);
     setError(null);
 
+    // --- NEW VALIDATION LOGIC ---
+    if (form.condicion === 'Sobreviviente' && !form.fecha_fallecimiento) {
+      setError('Favor colocar fecha de fallecimiento del Jubilado/a');
+      setIsLoading(false);
+      return; // Stop submission
+    }
+    // --- END NEW VALIDATION LOGIC ---
+
     try {
       const response = await fetch(`/api/beneficiarios/${id}`, {
         method: 'PUT',
@@ -81,7 +99,7 @@ export default function EditBeneficiarioPage({ params }: any) {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar beneficiario');
+        throw new Error(errorData.error || 'Error al actualizar Asociado o Sobreviviente');
       }
       router.push('/'); // Navigate back to the main list
     } catch (err) {
@@ -92,7 +110,7 @@ export default function EditBeneficiarioPage({ params }: any) {
   };
 
   if (isLoading) {
-    return <main className={styles.main}><p>Cargando beneficiario...</p></main>;
+    return <main className={styles.main}><p>Cargando datos...</p></main>;
   }
 
   if (error) {
@@ -102,7 +120,7 @@ export default function EditBeneficiarioPage({ params }: any) {
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <h1>Editar Beneficiario</h1>
+        <h1>Editar Asociado / Sobreviviente</h1>
       </div>
 
       <div className={`${styles.container} ${styles.formContainer}`}>
@@ -115,6 +133,9 @@ export default function EditBeneficiarioPage({ params }: any) {
             <option value="Sobreviviente">Sobreviviente</option>
           </select>
           <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
+          <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" className={styles.input}/>
+          <input type="date" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="Fecha de Fallecimiento" className={styles.input}/>
+          <input type="text" name="telefono" value={form.telefono} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>
           <div className={styles.buttonGroup}>
             <button type="submit" disabled={isLoading || !form.nombre_completo || !form.cedula} className={`${styles.button} ${styles.buttonPrimary}`}>
               {isLoading ? 'Guardando...' : 'Actualizar'}

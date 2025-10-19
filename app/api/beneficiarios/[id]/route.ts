@@ -21,19 +21,23 @@ export async function GET(request: NextRequest, context: any) {
 export async function PUT(request: Request, context: any) {
   const { params } = context;
   try {
-    const { nombre_completo, cedula, condicion, nombre_finado } = await request.json();
+    const { nombre_completo, cedula, condicion, nombre_finado, fecha_nacimiento, fecha_fallecimiento, telefono } = await request.json();
+    const cedulaLimpia = cedula ? String(cedula).replace(/\./g, '') : '';
     const id = Number(params.id);
 
-    if (!nombre_completo || !cedula || !condicion) {
+    if (!nombre_completo || !cedulaLimpia || !condicion) {
         return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
     }
 
     const { rows } = await sql`
       UPDATE Beneficiarios
-      SET nombre_completo = ${nombre_completo}, 
-          cedula = ${cedula}, 
-          condicion = ${condicion}, 
-          nombre_finado = ${nombre_finado || null}
+      SET nombre_completo = ${nombre_completo},
+          cedula = ${cedulaLimpia},
+          condicion = ${condicion},
+          nombre_finado = ${nombre_finado || null},
+          fecha_nacimiento = ${fecha_nacimiento || null},
+          fecha_fallecimiento = ${fecha_fallecimiento || null},
+          telefono = ${telefono || null}
       WHERE id = ${id}
       RETURNING *;
     `;
@@ -51,7 +55,6 @@ export async function PUT(request: Request, context: any) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
-
 // Handler para ELIMINAR un beneficiario
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(request: Request, context: any) {

@@ -164,3 +164,36 @@
     transform: rotate(360deg);
   }
 }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main {
+    padding: 2rem 1rem; /* Reduced padding for smaller screens */
+  }
+
+  .description, .container {
+    max-width: 100%; /* Allow containers to take full width */
+    padding: 1rem;
+  }
+
+  .buttonGroup {
+    flex-direction: column; /* Stack buttons vertically */
+  }
+
+  .input, .select, .button {
+    font-size: 0.9rem; /* Slightly smaller fonts */
+  }
+
+        .tableWrapper { /* New rule */
+          overflow-x: auto; /* Enable horizontal scrolling for the wrapper */
+          width: 100%;
+        }
+  
+        .table {
+          display: block; /* Allow table to be block-level for scrolling */
+          white-space: nowrap; /* Prevent text wrapping in table cells */
+        }
+  .th, .td {
+    padding: 0.5rem; /* Smaller padding in table cells */
+  }
+}

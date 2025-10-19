@@ -12,12 +12,18 @@ interface Beneficiario {
   cedula: string;
   condicion: string;
   nombre_finado: string | null;
+  fecha_nacimiento: string | null;
+  fecha_fallecimiento: string | null;
+  telefono: string | null;
 }
 
 // Tipo para el estado del formulario, con id opcional y nombre_finado como string
-type FormState = Omit<Beneficiario, 'id' | 'nombre_finado'> & {
+type FormState = Omit<Beneficiario, 'id' | 'nombre_finado' | 'fecha_nacimiento' | 'fecha_fallecimiento' | 'telefono'> & {
   id?: number;
   nombre_finado: string;
+  fecha_nacimiento: string;
+  fecha_fallecimiento: string;
+  telefono: string;
 }
 
 const initialFormState: FormState = {
@@ -25,6 +31,9 @@ const initialFormState: FormState = {
     cedula: '',
     condicion: '',
     nombre_finado: '',
+    fecha_nacimiento: '',
+    fecha_fallecimiento: '',
+    telefono: '',
 };
 
 export default function Home() {
@@ -79,6 +88,15 @@ const extractNumber = (cedulaString: string): number => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    // --- NEW VALIDATION LOGIC ---
+    if (form.condicion === 'Sobreviviente' && !form.fecha_fallecimiento) {
+      setError('Favor colocar fecha de fallecimiento del Jubilado/a');
+      setIsLoading(false);
+      return; // Stop submission
+    }
+    // --- END NEW VALIDATION LOGIC ---
+
     const url = isEditing ? `/api/beneficiarios/${form.id}` : '/api/beneficiarios';
     const method = isEditing ? 'PUT' : 'POST';
 
@@ -112,7 +130,7 @@ const extractNumber = (cedulaString: string): number => {
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedBeneficiarios.length > 0 && window.confirm('¿Estás seguro de que quieres eliminar los beneficiarios seleccionados?')) {
+    if (selectedBeneficiarios.length > 0 && window.confirm('¿Estás seguro de que quieres eliminar los registros seleccionados?')) {
       setIsLoading(true);
       setError(null);
       try {
@@ -120,7 +138,7 @@ const extractNumber = (cedulaString: string): number => {
           const response = await fetch(`/api/beneficiarios/${id}`, { method: 'DELETE' });
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `Error al eliminar beneficiario con ID ${id}`);
+            throw new Error(errorData.error || `Error al eliminar el registro con ID ${id}`);
           }
         }
         setSelectedBeneficiarios([]); // Clear selection after deletion
@@ -165,7 +183,7 @@ const extractNumber = (cedulaString: string): number => {
     y += 25; // Space after date/time
 
     // Table Headers
-    const headers = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado'];
+    const headers = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado', 'F. Nacimiento', 'F. Fallecimiento', 'Teléfono'];
     const columnWidths = [30, 150, 80, 80, 150]; // Adjust as needed
     let x = margin;
 
@@ -229,11 +247,11 @@ const extractNumber = (cedulaString: string): number => {
         </div>
       )}
       <div className={styles.description}>
-        <h1>Gestión de Beneficiarios</h1>
+        <h1>Gestión de Asociados y Sobrevivientes</h1>
       </div>
 
       <div className={`${styles.container} ${styles.formContainer}`}>
-        <h2>{isEditing ? 'Editando Beneficiario' : 'Añadir Nuevo Beneficiario'}</h2>
+        <h2>{isEditing ? 'Editando Registro' : 'Añadir Nuevo Asociado / Sobreviviente'}</h2>
         <form onSubmit={handleSubmit} className={styles.form}>
             <input type="text" name="nombre_completo" value={form.nombre_completo} onChange={handleInputChange} placeholder="Nombre Completo" required className={styles.input}/>
             <input type="text" name="cedula" value={form.cedula} onChange={handleInputChange} placeholder="Cédula" required className={styles.input}/>
@@ -243,6 +261,9 @@ const extractNumber = (cedulaString: string): number => {
                 <option value="Sobreviviente">Sobreviviente</option>
             </select>
             <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
+            <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" className={styles.input}/>
+            <input type="date" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="Fecha de Fallecimiento" className={styles.input}/>
+            <input type="text" name="telefono" value={form.telefono} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>
             <div className={styles.buttonGroup}>
                 <button type="submit" disabled={isLoading || !form.nombre_completo || !form.cedula} className={`${styles.button} ${styles.buttonPrimary}`}>
                     {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Guardar')}
@@ -265,7 +286,7 @@ const extractNumber = (cedulaString: string): number => {
 
       <div className={styles.container}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Lista de Beneficiarios</h2>
+            <h2>Lista de Asociados y Sobrevivientes</h2>
             <button onClick={() => generatePdfReport(beneficiarios)} className={`${styles.button} ${styles.buttonPrint}`}>
               Imprimir
             </button>
@@ -285,7 +306,8 @@ const extractNumber = (cedulaString: string): number => {
             </button>
           </div>
           {isLoading && !beneficiarios.length && <p>Cargando lista...</p>}
-          <table className={styles.table}>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
             <thead>
               <tr>
                 <th className={styles.th}>Seleccionar</th>
@@ -311,10 +333,14 @@ const extractNumber = (cedulaString: string): number => {
                   <td className={styles.td}>{b.cedula}</td>
                   <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
                   <td className={styles.td}>{b.nombre_finado || 'N/A'}</td>
+                  <td className={styles.td}>{b.fecha_nacimiento || 'N/A'}</td>
+                  <td className={styles.td}>{b.fecha_fallecimiento || 'N/A'}</td>
+                  <td className={styles.td}>{b.telefono || 'N/A'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
     </main>
   );
