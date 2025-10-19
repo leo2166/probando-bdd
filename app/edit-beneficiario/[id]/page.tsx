@@ -38,7 +38,7 @@ const initialFormState: FormState = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function EditBeneficiarioPage({ params }: any) {
   const router = useRouter();
-  const resolvedParams = React.use(params);
+  const resolvedParams = React.use(params) as { id: string };
   const { id } = resolvedParams;
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +62,9 @@ export default function EditBeneficiarioPage({ params }: any) {
             cedula: data.beneficiario.cedula,
             condicion: data.beneficiario.condicion,
             nombre_finado: data.beneficiario.nombre_finado || '',
+            fecha_nacimiento: data.beneficiario.fecha_nacimiento || '',
+            fecha_fallecimiento: data.beneficiario.fecha_fallecimiento || '',
+            telefono: data.beneficiario.telefono || '',
           });
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
