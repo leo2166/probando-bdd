@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import jsPDF from 'jspdf';
+
 import styles from './page.module.css';
 
 // Interfaz para los datos de beneficiarios
@@ -44,6 +44,23 @@ export default function Home() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedBeneficiarios, setSelectedBeneficiarios] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Beneficiario[]>([]);
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    const results = beneficiarios.filter(b =>
+      b.nombre_completo.toLowerCase().includes(lowercasedQuery) ||
+      b.cedula.includes(searchQuery)
+    );
+    setSearchResults(results);
+    // Clear selection when a new search is performed
+    setSelectedBeneficiarios([]);
+  };
 
   const handleSelectBeneficiario = (id: number) => {
     setSelectedBeneficiarios(prev =>
@@ -151,92 +168,7 @@ const extractNumber = (cedulaString: string): number => {
     }
   };
 
-  const generatePdfReport = (data: Beneficiario[]) => {
-    const doc = new jsPDF('p', 'pt', 'letter'); // 'p' for portrait, 'pt' for points, 'letter' for Letter size
-    const margin = 40; // Margins for the page
-    let y = margin; // Y position for content
 
-    // Set font for titles
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('Asociacion de Jubilado', margin, y);
-    y += 20;
-
-    doc.setFontSize(12);
-    doc.text('Listado de Socios y Sobrevivientes', margin, y);
-    y += 15;
-
-    // Add Date and Time
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const formattedTime = now.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    doc.text(`Fecha: ${formattedDate} - Hora: ${formattedTime}`, margin, y);
-    y += 25; // Space after date/time
-
-    // Table Headers
-    const headers = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado', 'F. Nacimiento', 'F. Fallecimiento', 'Teléfono'];
-    const columnWidths = [30, 150, 80, 80, 150]; // Adjust as needed
-    let x = margin;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    headers.forEach((header, index) => {
-      doc.text(header, x, y);
-      x += columnWidths[index];
-    });
-    y += 15;
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, doc.internal.pageSize.width - margin, y); // Line under headers
-    y += 10;
-
-    // Table Data
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    data.forEach((beneficiario, index) => {
-      if (y > doc.internal.pageSize.height - margin) { // Check for page break
-        doc.addPage();
-        y = margin;
-        // Re-add headers on new page
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        x = margin;
-        headers.forEach((header, hIndex) => {
-          doc.text(header, x, y);
-          x += columnWidths[hIndex];
-        });
-        y += 15;
-        doc.setLineWidth(0.5);
-        doc.line(margin, y, doc.internal.pageSize.width - margin, y);
-        y += 10;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-      }
-
-      x = margin;
-      doc.text((index + 1).toString(), x, y);
-      x += columnWidths[0];
-      doc.text(beneficiario.nombre_completo, x, y);
-      x += columnWidths[1];
-      doc.text(beneficiario.cedula, x, y);
-      x += columnWidths[2];
-      doc.text(beneficiario.condicion === 'Jubilado' ? 'Jubilado/a' : beneficiario.condicion, x, y);
-      x += columnWidths[3];
-      doc.text(beneficiario.nombre_finado || 'N/A', x, y);
-      y += 15; // Line height
-    });
-
-    // Open PDF in new window
-    doc.output('dataurlnewwindow');
-  };
 
   return (
     <main className={styles.main}>
@@ -285,63 +217,79 @@ const extractNumber = (cedulaString: string): number => {
       )}
 
       <div className={styles.container}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Lista de Asociados y Sobrevivientes</h2>
-            <button onClick={() => generatePdfReport(beneficiarios)} className={`${styles.button} ${styles.buttonPrint}`}>
-              Imprimir
-            </button>
+        <h2>Consulta, modificación y eliminación de registro</h2>
+        <div className={styles.searchForm}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+            placeholder="Buscar por Nombre o Cédula..."
+            className={styles.input}
+            style={{ maxWidth: '400px', marginRight: '10px' }}
+          />
+          <button onClick={handleSearch} className={`${styles.button} ${styles.buttonPrimary}`}>Buscar</button>
+        </div>
+
+        <div className={styles.buttonGroup} style={{ marginTop: '20px' }}>
             <button
               onClick={handleEditSelected}
               disabled={selectedBeneficiarios.length !== 1}
               className={`${styles.button} ${styles.buttonSecondary}`}
             >
-              Editar Seleccionado
+              Modificar Selección
             </button>
             <button
               onClick={handleDeleteSelected}
               disabled={selectedBeneficiarios.length === 0}
               className={`${styles.button} ${styles.buttonDanger}`}
             >
-              Eliminar Seleccionados
+              Eliminar Selección
             </button>
-          </div>
-          {isLoading && !beneficiarios.length && <p>Cargando lista...</p>}
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.th}>Seleccionar</th>
-                <th className={styles.th}>#</th>
-                <th className={styles.th}>Nombre Completo</th>
-                <th className={styles.th}>Cédula</th>
-                <th className={styles.th}>Condición</th>
-                <th className={styles.th}>Nombre Finado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {beneficiarios.map((b, index) => (
-                <tr key={b.id}>
-                  <td className={styles.td}>
-                    <input
-                      type="checkbox"
-                      checked={selectedBeneficiarios.includes(b.id)}
-                      onChange={() => handleSelectBeneficiario(b.id)}
-                    />
-                  </td>
-                  <td className={styles.td}>{index + 1}</td>
-                  <td className={styles.td}>{b.nombre_completo}</td>
-                  <td className={styles.td}>{b.cedula}</td>
-                  <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
-                  <td className={styles.td}>{b.nombre_finado || 'N/A'}</td>
-                  <td className={styles.td}>{b.fecha_nacimiento || 'N/A'}</td>
-                  <td className={styles.td}>{b.fecha_fallecimiento || 'N/A'}</td>
-                  <td className={styles.td}>{b.telefono || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
+             <button onClick={() => router.push('/reportes')} className={`${styles.button} ${styles.buttonPrint}`}>
+              Reportes
+            </button>
         </div>
+
+        {searchQuery && (
+          <div className={styles.tableWrapper} style={{ marginTop: '20px' }}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>Seleccionar</th>
+                  <th className={styles.th}>Nombre Completo</th>
+                  <th className={styles.th}>Cédula</th>
+                  <th className={styles.th}>Condición</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchResults.length > 0 ? (
+                  searchResults.map((b) => (
+                    <tr key={b.id}>
+                      <td className={styles.td}>
+                        <input
+                          type="checkbox"
+                          checked={selectedBeneficiarios.includes(b.id)}
+                          onChange={() => handleSelectBeneficiario(b.id)}
+                        />
+                      </td>
+                      <td className={styles.td}>{b.nombre_completo}</td>
+                      <td className={styles.td}>{b.cedula}</td>
+                      <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>
+                      No se encontraron registros con el criterio de búsqueda.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

@@ -95,6 +95,25 @@
   cursor: not-allowed;
 }
 
+.reportButton {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  font-size: 1.1rem;
+  background-color: #f8f9fa;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.reportButton:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
