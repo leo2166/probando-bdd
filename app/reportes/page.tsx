@@ -46,7 +46,7 @@ export default function ReportesPage() {
   }, [fetchBeneficiarios]);
 
   // --- FUNCIÓN DE PDF REFACTORIZADA ---
-  const generatePdfReport = (data: Beneficiario[], title: string, excludeColumns: string[] = [], orientation: 'p' | 'l' = 'p') => {
+  const generatePdfReport = (data: Beneficiario[], title: string, excludeColumns: string[] = [], orientation: 'p' | 'l' = 'p', dataFontSize: number = 12, customColumnProportions?: { [key: string]: number }, customHeaders?: string[]) => {
     if (data.length === 0) {
         alert('No hay datos para generar este reporte.');
         return;
@@ -70,12 +70,10 @@ export default function ReportesPage() {
     y += 25;
 
     // Definiciones maestras de columnas
-    const allHeaders = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado', 'F. Nacimiento', 'F. Fallecimiento', 'Teléfono'];
-    const allDataKeys = ['index', 'nombre_completo', 'cedula', 'condicion', 'nombre_finado', 'fecha_nacimiento', 'fecha_fallecimiento', 'telefono'];
-    const portraitWidths = [25, 100, 60, 65, 100, 60, 60, 50];
-    // Anchos para horizontal (landscape), más espacio para nombres
-    const landscapeWidths = [30, 150, 80, 80, 150, 80, 80, 60];
-    const allColumnWidths = orientation === 'l' ? landscapeWidths : portraitWidths;
+    const allHeaders = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Asociado', 'Nombre Finado', 'F. Nacimiento', 'F. Fallecimiento', 'Teléfono'];
+    const allDataKeys = ['index', 'nombre_completo', 'cedula', 'condicion', 'asociado', 'nombre_finado', 'fecha_nacimiento', 'fecha_fallecimiento', 'telefono'];
+
+    const effectiveHeaders = customHeaders || allHeaders;
 
     // Filtrar columnas basadas en `excludeColumns`
     const headers: string[] = [];
@@ -84,10 +82,35 @@ export default function ReportesPage() {
 
     allDataKeys.forEach((key, index) => {
         if (!excludeColumns.includes(key)) {
-            headers.push(allHeaders[index]);
-            columnWidths.push(allColumnWidths[index]);
+            headers.push(effectiveHeaders[index]);
             dataKeys.push(key);
         }
+    });
+
+    // Definir proporciones de ancho para cada columna
+    const effectiveColumnProportions = customColumnProportions || {
+        'index': 1,
+        'nombre_completo': 5,
+        'cedula': 2,
+        'condicion': 2,
+        'asociado': 1.5,
+        'nombre_finado': 3,
+        'fecha_nacimiento': 2.5,
+        'fecha_fallecimiento': 2,
+        'telefono': 2,
+    };
+
+    // Calcular anchos de columna basados en proporciones
+    const availableWidth = doc.internal.pageSize.width - (2 * margin);
+    let totalActiveProportions = 0;
+    dataKeys.forEach(key => {
+        totalActiveProportions += effectiveColumnProportions[key as keyof typeof effectiveColumnProportions] || 1; // Default to 1 if not defined
+    });
+
+    columnWidths.length = 0; // Limpiar anchos existentes
+    dataKeys.forEach(key => {
+        const proportion = effectiveColumnProportions[key as keyof typeof effectiveColumnProportions] || 1;
+        columnWidths.push((proportion / totalActiveProportions) * availableWidth);
     });
 
     // Dibujar encabezados de tabla
@@ -95,7 +118,7 @@ export default function ReportesPage() {
     doc.setFontSize(12);
     let x = margin;
     headers.forEach((header, index) => {
-        doc.text(header, x, y);
+        doc.text(header, x, y, { maxWidth: columnWidths[index] });
         x += columnWidths[index];
     });
     y += 15;
@@ -105,7 +128,7 @@ export default function ReportesPage() {
 
     // Dibujar filas de datos
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
+    doc.setFontSize(dataFontSize);
     data.forEach((beneficiario, index) => {
         if (y > doc.internal.pageSize.height - margin) { // Salto de página
             doc.addPage();
@@ -115,7 +138,7 @@ export default function ReportesPage() {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
             headers.forEach((header, hIndex) => {
-                doc.text(header, x, y);
+                doc.text(header, x, y, { maxWidth: columnWidths[hIndex] });
                 x += columnWidths[hIndex];
             });
             y += 15;
@@ -123,7 +146,7 @@ export default function ReportesPage() {
             doc.line(margin, y, doc.internal.pageSize.width - margin, y);
             y += 20;
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(12);
+            doc.setFontSize(dataFontSize);
         }
 
         const fullRow = {
@@ -131,6 +154,7 @@ export default function ReportesPage() {
             nombre_completo: beneficiario.nombre_completo,
             cedula: beneficiario.cedula,
             condicion: beneficiario.condicion === 'Jubilado' ? 'Jubilado/a' : beneficiario.condicion,
+            asociado: beneficiario.asociado ? 'Sí' : 'No', // Nuevo campo
             nombre_finado: beneficiario.nombre_finado || 'N/A',
             fecha_nacimiento: beneficiario.fecha_nacimiento ? new Date(beneficiario.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-ES') : 'N/A',
             fecha_fallecimiento: beneficiario.fecha_fallecimiento ? new Date(beneficiario.fecha_fallecimiento + 'T00:00:00').toLocaleDateString('es-ES') : 'N/A',
@@ -166,6 +190,10 @@ export default function ReportesPage() {
   // --- Lógica de generación de reportes ---
   const runReport = (reportType: string) => {
     switch (reportType) {
+      case 'asociados-activos':
+        const asociadosActivos = beneficiarios.filter(b => b.condicion === 'Jubilado' && !b.fecha_fallecimiento && b.asociado);
+        generatePdfReport(asociadosActivos, 'Reporte de Asociados Activos', ['fecha_fallecimiento', 'nombre_finado'], 'l');
+        break;
       case 'jubilados':
         const jubilados = beneficiarios.filter(b => b.condicion === 'Jubilado' && !b.fecha_fallecimiento);
         // Excluir la columna de fallecimiento para este reporte específico
@@ -173,11 +201,24 @@ export default function ReportesPage() {
         break;
       case 'sobrevivientes':
         const sobrevivientes = beneficiarios.filter(b => b.condicion === 'Sobreviviente');
-        generatePdfReport(sobrevivientes, 'Listado de Sobrevivientes', [], 'l');
+        const sobrevivientesColumnProportions = {
+            'index': 2,
+            'nombre_completo': 25,
+            'cedula': 10,
+            'nombre_finado': 25,
+            'fecha_fallecimiento': 10,
+            'telefono': 10,
+        };
+        const customSobrevivientesHeaders = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Asociado', 'Nombre Finado', 'F. Nacimiento', 'F. Deceso', 'Teléfono'];
+        generatePdfReport(sobrevivientes, 'Reporte de Sobrevivientes', ['condicion', 'fecha_nacimiento', 'asociado'], 'l', 11, sobrevivientesColumnProportions, customSobrevivientesHeaders);
         break;
       case 'fallecidos':
-        const fallecidos = beneficiarios.filter(b => !!b.fecha_fallecimiento);
-        generatePdfReport(fallecidos, 'Listado de Fallecidos', [], 'l');
+        const fallecidos = beneficiarios.filter(b => !!b.fecha_fallecimiento).sort((a, b) => {
+            const dateA = a.fecha_fallecimiento ? new Date(a.fecha_fallecimiento).getTime() : 0;
+            const dateB = b.fecha_fallecimiento ? new Date(b.fecha_fallecimiento).getTime() : 0;
+            return dateB - dateA;
+        });
+        generatePdfReport(fallecidos, 'Reporte de Fallecidos', ['nombre_completo', 'cedula', 'condicion', 'telefono'], 'l');
         break;
       case 'cumpleaneros':
         if (!birthdayDate) {
@@ -194,7 +235,7 @@ export default function ReportesPage() {
             return birthDate.getMonth() === targetMonth && birthDate.getDate() === targetDay;
         });
 
-        const title = `Listado de Cumpleañeros del ${targetDay} de ${targetDate.toLocaleString('es-ES', { month: 'long' })}`;
+        const title = `Reporte de Cumpleañeros del ${targetDay} de ${targetDate.toLocaleString('es-ES', { month: 'long' })}`;
         generatePdfReport(cumpleaneros, title, [], 'l');
         break;
     }
@@ -240,10 +281,11 @@ export default function ReportesPage() {
             <button onClick={() => router.back()} className={`${styles.button} ${styles.buttonSecondary}`}>Volver</button>
         </div>
         <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-            <button onClick={() => runReport('jubilados')} className={styles.reportButton}>1. Reporte de Jubilados Activos</button>
-            <button onClick={() => runReport('sobrevivientes')} className={styles.reportButton}>2. Listado de Sobrevivientes</button>
-            <button onClick={() => runReport('fallecidos')} className={styles.reportButton}>3. Listado de Fallecidos</button>
-            <button onClick={() => setSelectedReport('cumpleaneros')} className={styles.reportButton}>4. Listado de Cumpleañeros por Fecha</button>
+            <button onClick={() => runReport('asociados-activos')} className={styles.reportButton}>Reporte de Asociados Activos</button>
+            <button onClick={() => runReport('jubilados')} className={styles.reportButton}>Reporte de Jubilados Activos</button>
+            <button onClick={() => runReport('sobrevivientes')} className={styles.reportButton}>Reporte de Sobrevivientes</button>
+            <button onClick={() => runReport('fallecidos')} className={styles.reportButton}>Reporte de Fallecidos</button>
+            <button onClick={() => setSelectedReport('cumpleaneros')} className={styles.reportButton}>Reporte de Cumpleañeros por Fecha</button>
         </div>
       </>
     );
