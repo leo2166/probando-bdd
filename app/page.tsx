@@ -38,6 +38,39 @@ const initialFormState: FormState = {
     telefono: '',
 };
 
+// Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
+const formatDateToDDMMYYYY = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+// Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)
+const parseDateToYYYYMMDD = (dateString: string): string | null => {
+  if (!dateString) return null;
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+
+    // Validación básica de fecha
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  return null;
+};
+
+// Helper para validar formato DD/MM/AAAA
+const isValidDDMMYYYY = (dateString: string): boolean => {
+  if (!dateString) return true; // Campo vacío es válido
+  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!regex.test(dateString)) return false;
+  return parseDateToYYYYMMDD(dateString) !== null;
+};
+
 export default function Home() {
   const router = useRouter();
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
@@ -102,6 +135,15 @@ const extractNumber = (cedulaString: string): number => {
     const { name, value } = e.target;
     if (name === 'asociado') {
       setForm(prev => ({ ...prev, [name]: value === 'true' }));
+    } else if (name === 'fecha_nacimiento' || name === 'fecha_fallecimiento') {
+      // Validar y parsear fecha
+      if (value && !isValidDDMMYYYY(value)) {
+        setError(`Formato de fecha inválido para ${name}. Use DD/MM/AAAA.`);
+        setForm(prev => ({ ...prev, [name]: value })); // Mantener el valor inválido para que el usuario lo corrija
+      } else {
+        setError(null);
+        setForm(prev => ({ ...prev, [name]: parseDateToYYYYMMDD(value) || '' }));
+      }
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
     }
@@ -117,6 +159,17 @@ const extractNumber = (cedulaString: string): number => {
       setError('Favor colocar fecha de fallecimiento del Jubilado/a');
       setIsLoading(false);
       return; // Stop submission
+    }
+
+    if (form.fecha_nacimiento && !isValidDDMMYYYY(formatDateToDDMMYYYY(form.fecha_nacimiento))) {
+      setError('Formato de fecha de nacimiento inválido. Use DD/MM/AAAA.');
+      setIsLoading(false);
+      return;
+    }
+    if (form.fecha_fallecimiento && !isValidDDMMYYYY(formatDateToDDMMYYYY(form.fecha_fallecimiento))) {
+      setError('Formato de fecha de fallecimiento inválido. Use DD/MM/AAAA.');
+      setIsLoading(false);
+      return;
     }
     // --- END NEW VALIDATION LOGIC ---
 
@@ -203,8 +256,8 @@ const extractNumber = (cedulaString: string): number => {
                 <option value="true">Asociado: Sí</option>
             </select>
             <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
-            <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" className={styles.input}/>
-            <input type="date" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="Fecha de Fallecimiento" className={styles.input}/>
+            <input type="text" name="fecha_nacimiento" value={formatDateToDDMMYYYY(form.fecha_nacimiento)} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
+            <input type="text" name="fecha_fallecimiento" value={formatDateToDDMMYYYY(form.fecha_fallecimiento)} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
             <input type="text" name="telefono" value={form.telefono} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>
             <div className={styles.buttonGroup}>
                 <button type="submit" disabled={isLoading || !form.nombre_completo || !form.cedula} className={`${styles.button} ${styles.buttonPrimary}`}>

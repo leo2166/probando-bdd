@@ -27,6 +27,39 @@ export default function ReportesPage() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [birthdayDate, setBirthdayDate] = useState<string>('');
 
+// Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
+const formatDateToDDMMYYYY = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
+// Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)
+const parseDateToYYYYMMDD = (dateString: string): string | null => {
+  if (!dateString) return null;
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+
+    // Validación básica de fecha
+    const date = new Date(year, month - 1, day);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  return null;
+};
+
+// Helper para validar formato DD/MM/AAAA
+const isValidDDMMYYYY = (dateString: string): boolean => {
+  if (!dateString) return true; // Campo vacío es válido
+  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!regex.test(dateString)) return false;
+  return parseDateToYYYYMMDD(dateString) !== null;
+};
+
   const fetchBeneficiarios = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -225,10 +258,19 @@ export default function ReportesPage() {
         break;
       case 'cumpleaneros':
         if (!birthdayDate) {
-            alert('Por favor, selecciona una fecha.');
+            setError('Por favor, selecciona una fecha.');
             return;
         }
-        const targetDate = new Date(birthdayDate + 'T00:00:00');
+        if (!isValidDDMMYYYY(birthdayDate)) {
+            setError('Formato de fecha inválido. Use DD/MM/AAAA.');
+            return;
+        }
+        const parsedBirthdayDate = parseDateToYYYYMMDD(birthdayDate);
+        if (!parsedBirthdayDate) {
+            setError('Fecha inválida. Use DD/MM/AAAA.');
+            return;
+        }
+        const targetDate = new Date(parsedBirthdayDate + 'T00:00:00');
         const targetMonth = targetDate.getMonth();
         const targetDay = targetDate.getDate();
 
@@ -262,9 +304,18 @@ export default function ReportesPage() {
           <p>Selecciona la fecha (día y mes) para buscar cumpleañeros.</p>
           <div className={styles.form} style={{alignItems: 'center', marginTop: '1.5rem'}}>
             <input
-                type="date"
+                type="text"
                 value={birthdayDate}
-                onChange={(e) => setBirthdayDate(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBirthdayDate(value);
+                  if (value && !isValidDDMMYYYY(value)) {
+                    setError('Formato de fecha inválido. Use DD/MM/AAAA.');
+                  } else {
+                    setError(null);
+                  }
+                }}
+                placeholder="DD/MM/AAAA"
                 className={styles.input}
                 style={{maxWidth: '250px'}}
             />
