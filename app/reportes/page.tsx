@@ -46,33 +46,36 @@ export default function ReportesPage() {
   }, [fetchBeneficiarios]);
 
   // --- FUNCIÓN DE PDF REFACTORIZADA ---
-  const generatePdfReport = (data: Beneficiario[], title: string, excludeColumns: string[] = []) => {
+  const generatePdfReport = (data: Beneficiario[], title: string, excludeColumns: string[] = [], orientation: 'p' | 'l' = 'p') => {
     if (data.length === 0) {
         alert('No hay datos para generar este reporte.');
         return;
     }
-    const doc = new jsPDF('p', 'pt', 'letter');
+    const doc = new jsPDF(orientation, 'pt', 'letter');
     const margin = 40;
     let y = margin;
 
     // Títulos del documento
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('Asociacion de Jubilado', margin, y);
+    doc.text('AJUPTEL ZULIA', margin, y);
     y += 20;
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.text(title, margin, y);
     y += 15;
     const now = new Date();
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.text(`Fecha: ${now.toLocaleDateString('es-ES')} - Hora: ${now.toLocaleTimeString('es-ES')}`, margin, y);
     y += 25;
 
     // Definiciones maestras de columnas
     const allHeaders = ['#', 'Nombre Completo', 'Cédula', 'Condición', 'Nombre Finado', 'F. Nacimiento', 'F. Fallecimiento', 'Teléfono'];
     const allDataKeys = ['index', 'nombre_completo', 'cedula', 'condicion', 'nombre_finado', 'fecha_nacimiento', 'fecha_fallecimiento', 'telefono'];
-    const allColumnWidths = [25, 100, 60, 65, 100, 60, 60, 50];
+    const portraitWidths = [25, 100, 60, 65, 100, 60, 60, 50];
+    // Anchos para horizontal (landscape), más espacio para nombres
+    const landscapeWidths = [30, 150, 80, 80, 150, 80, 80, 60];
+    const allColumnWidths = orientation === 'l' ? landscapeWidths : portraitWidths;
 
     // Filtrar columnas basadas en `excludeColumns`
     const headers: string[] = [];
@@ -89,7 +92,7 @@ export default function ReportesPage() {
 
     // Dibujar encabezados de tabla
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     let x = margin;
     headers.forEach((header, index) => {
         doc.text(header, x, y);
@@ -98,11 +101,11 @@ export default function ReportesPage() {
     y += 15;
     doc.setLineWidth(0.5);
     doc.line(margin, y, doc.internal.pageSize.width - margin, y);
-    y += 10;
+    y += 20;
 
     // Dibujar filas de datos
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     data.forEach((beneficiario, index) => {
         if (y > doc.internal.pageSize.height - margin) { // Salto de página
             doc.addPage();
@@ -110,7 +113,7 @@ export default function ReportesPage() {
             // Repetir encabezados en nueva página
             x = margin;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
+            doc.setFontSize(12);
             headers.forEach((header, hIndex) => {
                 doc.text(header, x, y);
                 x += columnWidths[hIndex];
@@ -118,9 +121,9 @@ export default function ReportesPage() {
             y += 15;
             doc.setLineWidth(0.5);
             doc.line(margin, y, doc.internal.pageSize.width - margin, y);
-            y += 10;
+            y += 20;
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
+            doc.setFontSize(12);
         }
 
         const fullRow = {
@@ -140,7 +143,7 @@ export default function ReportesPage() {
             x += columnWidths[colIndex];
         });
 
-        y += 15;
+        y += 25;
     });
 
     // --- AÑADIR NÚMEROS DE PÁGINA ---
@@ -166,15 +169,15 @@ export default function ReportesPage() {
       case 'jubilados':
         const jubilados = beneficiarios.filter(b => b.condicion === 'Jubilado' && !b.fecha_fallecimiento);
         // Excluir la columna de fallecimiento para este reporte específico
-        generatePdfReport(jubilados, 'Reporte de Jubilados Activos', ['fecha_fallecimiento']);
+        generatePdfReport(jubilados, 'Reporte de Jubilados Activos', ['fecha_fallecimiento', 'nombre_finado'], 'l');
         break;
       case 'sobrevivientes':
         const sobrevivientes = beneficiarios.filter(b => b.condicion === 'Sobreviviente');
-        generatePdfReport(sobrevivientes, 'Listado de Sobrevivientes');
+        generatePdfReport(sobrevivientes, 'Listado de Sobrevivientes', [], 'l');
         break;
       case 'fallecidos':
         const fallecidos = beneficiarios.filter(b => !!b.fecha_fallecimiento);
-        generatePdfReport(fallecidos, 'Listado de Fallecidos');
+        generatePdfReport(fallecidos, 'Listado de Fallecidos', [], 'l');
         break;
       case 'cumpleaneros':
         if (!birthdayDate) {
@@ -192,7 +195,7 @@ export default function ReportesPage() {
         });
 
         const title = `Listado de Cumpleañeros del ${targetDay} de ${targetDate.toLocaleString('es-ES', { month: 'long' })}`;
-        generatePdfReport(cumpleaneros, title);
+        generatePdfReport(cumpleaneros, title, [], 'l');
         break;
     }
   };

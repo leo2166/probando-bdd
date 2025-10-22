@@ -11,6 +11,7 @@ interface Beneficiario {
   nombre_completo: string;
   cedula: string;
   condicion: string;
+  asociado: boolean;
   nombre_finado: string | null;
   fecha_nacimiento: string | null;
   fecha_fallecimiento: string | null;
@@ -29,6 +30,7 @@ const initialFormState: FormState = {
     nombre_completo: '',
     cedula: '',
     condicion: '',
+    asociado: false,
     nombre_finado: '',
     fecha_nacimiento: '',
     fecha_fallecimiento: '',
@@ -61,6 +63,7 @@ export default function EditBeneficiarioPage({ params }: any) {
             nombre_completo: data.beneficiario.nombre_completo,
             cedula: data.beneficiario.cedula,
             condicion: data.beneficiario.condicion,
+            asociado: data.beneficiario.asociado || false,
             nombre_finado: data.beneficiario.nombre_finado || '',
             fecha_nacimiento: data.beneficiario.fecha_nacimiento || '',
             fecha_fallecimiento: data.beneficiario.fecha_fallecimiento || '',
@@ -78,7 +81,11 @@ export default function EditBeneficiarioPage({ params }: any) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'asociado') {
+      setForm(prev => ({ ...prev, [name]: value === 'true' }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -134,6 +141,10 @@ export default function EditBeneficiarioPage({ params }: any) {
             <option value="">Seleccione Condición</option>
             <option value="Jubilado">Jubilado/a</option>
             <option value="Sobreviviente">Sobreviviente</option>
+          </select>
+          <select name="asociado" value={String(form.asociado)} onChange={handleInputChange} required className={styles.select}>
+                <option value="false">Asociado: No</option>
+                <option value="true">Asociado: Sí</option>
           </select>
           <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
           <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" className={styles.input}/>

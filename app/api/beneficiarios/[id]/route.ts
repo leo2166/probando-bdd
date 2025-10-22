@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, context: any) {
 export async function PUT(request: Request, context: any) {
   const { params } = context;
   try {
-    const { nombre_completo, cedula, condicion, nombre_finado, fecha_nacimiento, fecha_fallecimiento, telefono } = await request.json();
+    const { nombre_completo, cedula, condicion, asociado, nombre_finado, fecha_nacimiento, fecha_fallecimiento, telefono } = await request.json();
     const cedulaLimpia = cedula ? String(cedula).replace(/\./g, '') : '';
     const id = Number(params.id);
 
@@ -34,6 +34,7 @@ export async function PUT(request: Request, context: any) {
       SET nombre_completo = ${nombre_completo},
           cedula = ${cedulaLimpia},
           condicion = ${condicion},
+          asociado = ${asociado},
           nombre_finado = ${nombre_finado || null},
           fecha_nacimiento = ${fecha_nacimiento || null},
           fecha_fallecimiento = ${fecha_fallecimiento || null},

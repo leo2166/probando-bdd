@@ -11,6 +11,7 @@ interface Beneficiario {
   nombre_completo: string;
   cedula: string;
   condicion: string;
+  asociado: boolean;
   nombre_finado: string | null;
   fecha_nacimiento: string | null;
   fecha_fallecimiento: string | null;
@@ -30,6 +31,7 @@ const initialFormState: FormState = {
     nombre_completo: '',
     cedula: '',
     condicion: '',
+    asociado: false,
     nombre_finado: '',
     fecha_nacimiento: '',
     fecha_fallecimiento: '',
@@ -98,7 +100,11 @@ const extractNumber = (cedulaString: string): number => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'asociado') {
+      setForm(prev => ({ ...prev, [name]: value === 'true' }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -192,6 +198,10 @@ const extractNumber = (cedulaString: string): number => {
                 <option value="Jubilado">Jubilado/a</option>
                 <option value="Sobreviviente">Sobreviviente</option>
             </select>
+            <select name="asociado" value={String(form.asociado)} onChange={handleInputChange} required className={styles.select}>
+                <option value="false">Asociado: No</option>
+                <option value="true">Asociado: Sí</option>
+            </select>
             <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
             <input type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="Fecha de Nacimiento" className={styles.input}/>
             <input type="date" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="Fecha de Fallecimiento" className={styles.input}/>
@@ -260,6 +270,7 @@ const extractNumber = (cedulaString: string): number => {
                   <th className={styles.th}>Nombre Completo</th>
                   <th className={styles.th}>Cédula</th>
                   <th className={styles.th}>Condición</th>
+                  <th className={styles.th}>Asociado</th>
                 </tr>
               </thead>
               <tbody>
@@ -276,6 +287,7 @@ const extractNumber = (cedulaString: string): number => {
                       <td className={styles.td}>{b.nombre_completo}</td>
                       <td className={styles.td}>{b.cedula}</td>
                       <td className={styles.td}>{b.condicion === 'Jubilado' ? 'Jubilado/a' : b.condicion}</td>
+                      <td className={styles.td}>{b.asociado ? 'Sí' : 'No'}</td>
                     </tr>
                   ))
                 ) : (
