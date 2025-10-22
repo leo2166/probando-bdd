@@ -11,6 +11,7 @@ interface Beneficiario {
   nombre_completo: string;
   cedula: string;
   condicion: string;
+  asociado: boolean;
   nombre_finado: string | null;
   fecha_nacimiento: string | null;
   fecha_fallecimiento: string | null;
