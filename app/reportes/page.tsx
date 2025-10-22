@@ -172,14 +172,16 @@ export default function ReportesPage() {
     });
 
     // --- AÑADIR NÚMEROS DE PÁGINA ---
-    const totalPages = doc.internal.getNumberOfPages();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const totalPages = (doc.internal as any).getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i); // Ir a la página i
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         const text = `Página ${i} de ${totalPages}`;
         // Calcular el ancho del texto para centrarlo
-        const textWidth = doc.getStringUnitWidth(text) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const textWidth = doc.getStringUnitWidth(text) * (doc.internal as any).getFontSize() / doc.internal.scaleFactor;
         const x = (doc.internal.pageSize.width - textWidth) / 2;
         const y_footer = doc.internal.pageSize.height - 20; // 20 puntos desde abajo
         doc.text(text, x, y_footer);

@@ -1,24 +1,10 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 
-function getRandomDate(start: Date, end: Date): string {
-    const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-    return date.toISOString().split('T')[0];
-}
-
 function getRandomInt(min: number, max: number): number {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function getAge(birthDate: Date, referenceDate: Date): number {
-    let age = referenceDate.getFullYear() - birthDate.getFullYear();
-    const m = referenceDate.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && referenceDate.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
 }
 
 function generateRandomBeneficiario() {
