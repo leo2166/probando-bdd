@@ -40,8 +40,12 @@ const initialFormState: FormState = {
 // Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
 const formatDateToDDMMYYYY = (dateString: string | null): string => {
   if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return ''; // Return empty string for invalid format
 };
 
 // Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)
@@ -113,63 +117,70 @@ export default function EditBeneficiarioPage({ params }: any) {
   }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    console.log("NUEVA VERSIÓN DE handleInputChange FUNCIONANDO"); // Log de depuración definitivo
     const { name, value } = e.target;
-    if (name === 'asociado') {
-      setForm(prev => ({ ...prev, [name]: value === 'true' }));
-    } else if (name === 'fecha_nacimiento' || name === 'fecha_fallecimiento') {
-      // Validar y parsear fecha
-      if (value && !isValidDDMMYYYY(value)) {
-        setError(`Formato de fecha inválido para ${name}. Use DD/MM/AAAA.`);
-        setForm(prev => ({ ...prev, [name]: value })); // Mantener el valor inválido para que el usuario lo corrija
-      } else {
-        setError(null);
-        setForm(prev => ({ ...prev, [name]: parseDateToYYYYMMDD(value) || '' }));
-      }
-    } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+    console.log(`Input change: name=${name}, value=${value}`); // Log para seguimiento
+
+    const newState = { ...form, [name]: value };
+
+    // Si se cambia la condición y NO es "Sobreviviente", limpiar el campo de finado
+    if (name === 'condicion' && value !== 'Sobreviviente') {
+      newState.nombre_finado = '';
     }
+
+    // Si el campo es "asociado", convertir a booleano
+    if (name === 'asociado') {
+      newState.asociado = value === 'true';
+    }
+
+    setForm(newState);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
 
-    // --- NEW VALIDATION LOGIC ---
-    if (form.condicion === 'Sobreviviente' && !form.fecha_fallecimiento) {
-      setError('Favor colocar fecha de fallecimiento del Jubilado/a');
-      setIsLoading(false);
-      return; // Stop submission
-    }
-
+    // 1. Validar formato de fecha antes de enviar
     if (form.fecha_nacimiento && !isValidDDMMYYYY(form.fecha_nacimiento)) {
       setError('Formato de fecha de nacimiento inválido. Use DD/MM/AAAA.');
-      setIsLoading(false);
       return;
     }
     if (form.fecha_fallecimiento && !isValidDDMMYYYY(form.fecha_fallecimiento)) {
       setError('Formato de fecha de fallecimiento inválido. Use DD/MM/AAAA.');
-      setIsLoading(false);
       return;
     }
-    // --- END NEW VALIDATION LOGIC ---
+    if (form.condicion === 'Sobreviviente' && !form.fecha_fallecimiento) {
+      setError('Favor colocar fecha de fallecimiento del Jubilado/a');
+      return; 
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    // 2. Preparar el payload con fechas parseadas
+    const payload = {
+      ...form,
+      fecha_nacimiento: parseDateToYYYYMMDD(form.fecha_nacimiento),
+      fecha_fallecimiento: parseDateToYYYYMMDD(form.fecha_fallecimiento),
+    };
+
+    console.log('Enviando payload:', payload); // Log para seguimiento
 
     try {
       const response = await fetch(`/api/beneficiarios/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload), // Enviar el payload procesado
       });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al actualizar Asociado o Sobreviviente');
       }
-      router.push('/'); // Navigate back to the main list
+      router.push('/'); 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
     } finally {
       setIsLoading(false);
-    }
+    } 
   };
 
   if (isLoading) {
@@ -199,7 +210,7 @@ export default function EditBeneficiarioPage({ params }: any) {
                 <option value="false">Asociado: No</option>
                 <option value="true">Asociado: Sí</option>
           </select>
-          <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" className={styles.input}/>
+          <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" disabled={form.condicion !== 'Sobreviviente'} className={styles.input}/>
           <input type="text" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
           <input type="text" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
           <input type="text" name="telefono" value={form.telefono} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>

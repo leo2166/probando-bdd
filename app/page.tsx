@@ -41,8 +41,12 @@ const initialFormState: FormState = {
 // Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
 const formatDateToDDMMYYYY = (dateString: string | null): string => {
   if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return ''; // Return empty string for invalid format
 };
 
 // Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)

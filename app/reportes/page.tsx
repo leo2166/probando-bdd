@@ -30,8 +30,12 @@ export default function ReportesPage() {
 // Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
 const formatDateToDDMMYYYY = (dateString: string | null): string => {
   if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return ''; // Return empty string for invalid format
 };
 
 // Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)
@@ -256,7 +260,8 @@ const isValidDDMMYYYY = (dateString: string): boolean => {
         });
         generatePdfReport(fallecidos, 'Reporte de Fallecidos', ['nombre_completo', 'cedula', 'condicion', 'telefono'], 'l');
         break;
-      case 'cumpleaneros':
+      case 'cumpleaneros': {
+        console.log('Generando reporte de cumpleañeros con fecha:', birthdayDate);
         if (!birthdayDate) {
             setError('Por favor, selecciona una fecha.');
             return;
@@ -270,6 +275,7 @@ const isValidDDMMYYYY = (dateString: string): boolean => {
             setError('Fecha inválida. Use DD/MM/AAAA.');
             return;
         }
+
         const targetDate = new Date(parsedBirthdayDate + 'T00:00:00');
         const targetMonth = targetDate.getMonth();
         const targetDay = targetDate.getDate();
@@ -283,6 +289,7 @@ const isValidDDMMYYYY = (dateString: string): boolean => {
         const title = `Reporte de Cumpleañeros del ${targetDay} de ${targetDate.toLocaleString('es-ES', { month: 'long' })}`;
         generatePdfReport(cumpleaneros, title, [], 'l');
         break;
+      }
     }
   };
 
@@ -308,12 +315,9 @@ const isValidDDMMYYYY = (dateString: string): boolean => {
                 value={birthdayDate}
                 onChange={(e) => {
                   const value = e.target.value;
+                  console.log(`Birthday date input: ${value}`); // Log para seguimiento
                   setBirthdayDate(value);
-                  if (value && !isValidDDMMYYYY(value)) {
-                    setError('Formato de fecha inválido. Use DD/MM/AAAA.');
-                  } else {
-                    setError(null);
-                  }
+                  setError(null); // Limpiar errores anteriores al escribir
                 }}
                 placeholder="DD/MM/AAAA"
                 className={styles.input}
