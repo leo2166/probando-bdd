@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../../page.module.css'; // Adjust path as needed
+import styles from '../../main/main.module.css';
 import React from 'react';
+import CustomAlert from '../../components/CustomAlert'; // Importar el componente
 
-// Interfaz para los datos de beneficiarios
+// (El resto de las interfaces y helpers no cambia)
 interface Beneficiario {
   id: number;
   nombre_completo: string;
@@ -37,18 +38,27 @@ const initialFormState: FormState = {
     telefono: '',
 };
 
-// Helper para formatear fecha de YYYY-MM-DD a DD/MM/AAAA
 const formatDateToDDMMYYYY = (dateString: string | null): string => {
   if (!dateString) return '';
-  const parts = dateString.split('-');
-  if (parts.length === 3) {
-    const [year, month, day] = parts;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+      }
+      return '';
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  } catch (e) {
+    return '';
   }
-  return ''; // Return empty string for invalid format
 };
 
-// Helper para parsear fecha de DD/MM/AAAA a YYYY-MM-DD (o null si es inválido)
 const parseDateToYYYYMMDD = (dateString: string): string | null => {
   if (!dateString) return null;
   const parts = dateString.split('/');
@@ -56,8 +66,6 @@ const parseDateToYYYYMMDD = (dateString: string): string | null => {
     const day = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
     const year = parseInt(parts[2], 10);
-
-    // Validación básica de fecha
     const date = new Date(year, month - 1, day);
     if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
       return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -66,15 +74,13 @@ const parseDateToYYYYMMDD = (dateString: string): string | null => {
   return null;
 };
 
-// Helper para validar formato DD/MM/AAAA
 const isValidDDMMYYYY = (dateString: string): boolean => {
-  if (!dateString) return true; // Campo vacío es válido
+  if (!dateString) return true;
   const regex = /^\d{2}\/\d{2}\/\d{4}$/;
   if (!regex.test(dateString)) return false;
   return parseDateToYYYYMMDD(dateString) !== null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function EditBeneficiarioPage({ params }: any) {
   const router = useRouter();
   const resolvedParams = React.use(params) as { id: string };
@@ -82,17 +88,21 @@ export default function EditBeneficiarioPage({ params }: any) {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertInfo, setAlertInfo] = useState<{ message: string; details: string } | null>(null); // Estado para la alerta
+
+  const fechaNacimientoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (id) {
       const fetchBeneficiario = async () => {
+        // ... (lógica de fetch sin cambios)
         setIsLoading(true);
         setError(null);
         try {
           const response = await fetch(`/api/beneficiarios/${id}`);
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Asociado o Sobreviviente no encontrado');
+            throw new Error(errorData.error || 'Jubilado o Sobreviviente no encontrado');
           }
           const data = await response.json();
           setForm({
@@ -117,18 +127,31 @@ export default function EditBeneficiarioPage({ params }: any) {
   }, [id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    console.log("NUEVA VERSIÓN DE handleInputChange FUNCIONANDO"); // Log de depuración definitivo
     const { name, value } = e.target;
-    console.log(`Input change: name=${name}, value=${value}`); // Log para seguimiento
+    if (alertInfo) setAlertInfo(null);
+    if (error) setError(null);
 
-    const newState = { ...form, [name]: value };
+    let processedValue = value;
 
-    // Si se cambia la condición y NO es "Sobreviviente", limpiar el campo de finado
-    if (name === 'condicion' && value !== 'Sobreviviente') {
-      newState.nombre_finado = '';
+    // Máscara de fecha para campos de fecha
+    if (name === 'fecha_nacimiento' || name === 'fecha_fallecimiento') {
+      const onlyNums = value.replace(/[^\d]/g, '');
+      if (onlyNums.length <= 2) {
+        processedValue = onlyNums;
+      } else if (onlyNums.length <= 4) {
+        processedValue = `${onlyNums.slice(0, 2)}/${onlyNums.slice(2)}`;
+      } else {
+        processedValue = `${onlyNums.slice(0, 2)}/${onlyNums.slice(2, 4)}/${onlyNums.slice(4, 8)}`;
+      }
     }
 
-    // Si el campo es "asociado", convertir a booleano
+    const newState = { ...form, [name]: processedValue };
+
+    if (name === 'condicion' && value !== 'Sobreviviente') {
+      newState.nombre_finado = '';
+      newState.fecha_fallecimiento = '';
+    }
+
     if (name === 'asociado') {
       newState.asociado = value === 'true';
     }
@@ -139,43 +162,39 @@ export default function EditBeneficiarioPage({ params }: any) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // 1. Validar formato de fecha antes de enviar
     if (form.fecha_nacimiento && !isValidDDMMYYYY(form.fecha_nacimiento)) {
-      setError('Formato de fecha de nacimiento inválido. Use DD/MM/AAAA.');
+      setAlertInfo({ message: 'Formato de fecha inválido', details: 'Use DD/MM/AAAA' });
       return;
     }
     if (form.fecha_fallecimiento && !isValidDDMMYYYY(form.fecha_fallecimiento)) {
-      setError('Formato de fecha de fallecimiento inválido. Use DD/MM/AAAA.');
+      setAlertInfo({ message: 'Formato de fecha inválido', details: 'Use DD/MM/AAAA' });
       return;
     }
     if (form.condicion === 'Sobreviviente' && !form.fecha_fallecimiento) {
-      setError('Favor colocar fecha de fallecimiento del Jubilado/a');
+      setAlertInfo({ message: 'Campo requerido', details: 'Favor colocar fecha de fallecimiento' });
       return; 
     }
 
     setIsLoading(true);
     setError(null);
 
-    // 2. Preparar el payload con fechas parseadas
     const payload = {
       ...form,
       fecha_nacimiento: parseDateToYYYYMMDD(form.fecha_nacimiento),
       fecha_fallecimiento: parseDateToYYYYMMDD(form.fecha_fallecimiento),
     };
 
-    console.log('Enviando payload:', payload); // Log para seguimiento
-
     try {
       const response = await fetch(`/api/beneficiarios/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload), // Enviar el payload procesado
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar Asociado o Sobreviviente');
+        throw new Error(errorData.error || 'Error al actualizar');
       }
-      router.push('/'); 
+      router.push('/main'); 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
     } finally {
@@ -187,14 +206,23 @@ export default function EditBeneficiarioPage({ params }: any) {
     return <main className={styles.main}><p>Cargando datos...</p></main>;
   }
 
+  // El error ahora se puede manejar con la alerta personalizada si se desea
   if (error) {
     return <main className={styles.main}><p>Error: {error}</p></main>;
   }
 
   return (
     <main className={styles.main}>
+      {alertInfo && (
+        <CustomAlert 
+          message={alertInfo.message} 
+          details={alertInfo.details} 
+          onClose={() => setAlertInfo(null)} 
+        />
+      )}
+
       <div className={styles.description}>
-        <h1>Editar Asociado / Sobreviviente</h1>
+        <h1>Editar Jubilado / Sobreviviente</h1>
       </div>
 
       <div className={`${styles.container} ${styles.formContainer}`}>
@@ -210,15 +238,15 @@ export default function EditBeneficiarioPage({ params }: any) {
                 <option value="false">Asociado: No</option>
                 <option value="true">Asociado: Sí</option>
           </select>
-          <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre Finado (si aplica)" disabled={form.condicion !== 'Sobreviviente'} className={styles.input}/>
-          <input type="text" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
-          <input type="text" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input}/>
-          <input type="text" name="telefono" value={form.telefono} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>
+          <input type="text" name="nombre_finado" value={form.nombre_finado || ''} onChange={handleInputChange} placeholder="Nombre finado/a (si aplica)" disabled={form.condicion !== 'Sobreviviente'} className={styles.input}/>
+          <input type="text" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" className={styles.input} ref={fechaNacimientoRef}/>
+          <input type="text" name="fecha_fallecimiento" value={form.fecha_fallecimiento} onChange={handleInputChange} placeholder="DD/MM/AAAA" disabled={form.condicion !== 'Sobreviviente'} className={styles.input} />
+          <input type="text" name="telefono" value={form.telefono || ''} onChange={handleInputChange} placeholder="Teléfono" className={styles.input}/>
           <div className={styles.buttonGroup}>
             <button type="submit" disabled={isLoading || !form.nombre_completo || !form.cedula} className={`${styles.button} ${styles.buttonPrimary}`}>
               {isLoading ? 'Guardando...' : 'Actualizar'}
             </button>
-            <button type="button" onClick={() => router.push('/')} className={`${styles.button} ${styles.buttonSecondary}`}>
+            <button type="button" onClick={() => router.push('/main')} className={`${styles.button} ${styles.buttonSecondary}`}>
               Cancelar
             </button>
           </div>
