@@ -59,8 +59,7 @@ const formatDateToDDMMYYYY = (dateString: string | null): string => {
 
 export default function EditBeneficiarioPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const resolvedParams = React.use(params) as { id: string };
-  const { id } = resolvedParams;
+  const { id } = params;
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
