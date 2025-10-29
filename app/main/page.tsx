@@ -52,11 +52,32 @@ const parseDateToYYYYMMDD = (dateString: string | null): string | null => {
   return null;
 };
 
-const isValidDDMMYYYY = (dateString: string): boolean => {
-  if (!dateString) return true;
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!regex.test(dateString)) return false;
-  return parseDateToYYYYMMDD(dateString) !== null;
+const isValidDDMMYYYY = (dateString: string | null): boolean => {
+  if (!dateString) return true; // Empty string is valid (optional field)
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+
+  if (!match) {
+    return false; // Not a full DD/MM/AAAA format
+  }
+
+  const [_, day, month, year] = match;
+  const d = parseInt(day, 10);
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+
+  if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) {
+    return false; // Invalid date components
+  }
+
+  // Further check for month-day validity (e.g., 31/02 is invalid)
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+    return false;
+  }
+
+  return true; // It's a valid DD/MM/AAAA date
 };
 
 export default function Home() {
