@@ -276,14 +276,14 @@ export default function ReportesPage() {
         const targetDay = day;
 
         const cumpleaneros = beneficiarios.filter(b => {
-            if (!b.fecha_nacimiento) return false;
+            if (!b.fecha_nacimiento || b.fecha_fallecimiento) return false; // Excluir fallecidos
             const birthDate = new Date(b.fecha_nacimiento.split('T')[0] + 'T12:00:00');
             return birthDate.getMonth() === targetMonth && birthDate.getDate() === targetDay;
         });
 
         const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const title = `Reporte de Cumpleañeros del ${targetDay} de ${monthNames[targetMonth]}`;
-        generatePdfReport(cumpleaneros, title, [], 'l');
+        generatePdfReport(cumpleaneros, title, ['nombre_finado', 'fecha_fallecimiento'], 'l');
         break;
       }
     }
