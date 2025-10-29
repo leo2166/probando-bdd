@@ -37,6 +37,21 @@ const initialFormState: FormState = {
     telefono: '',
 };
 
+const parseDateToYYYYMMDD = (dateString: string | null): string | null => {
+  if (!dateString) return null;
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    // Basic validation for day, month, year
+    if (parseInt(day) > 0 && parseInt(day) <= 31 &&
+        parseInt(month) > 0 && parseInt(month) <= 12 &&
+        parseInt(year) >= 1900 && parseInt(year) <= 2100) { // Adjust year range as needed
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+  return null;
+};
+
 const isValidDDMMYYYY = (dateString: string): boolean => {
   if (!dateString) return true;
   const regex = /^\d{2}\/\d{2}\/\d{4}$/;
