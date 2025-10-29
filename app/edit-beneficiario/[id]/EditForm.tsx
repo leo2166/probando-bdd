@@ -81,7 +81,7 @@ const isValidDDMMYYYY = (dateString: string | null): boolean => {
     return false; // Not a full DD/MM/AAAA format
   }
 
-  const [_, day, month, year] = match;
+  const [, day, month, year] = match;
   const d = parseInt(day, 10);
   const m = parseInt(month, 10);
   const y = parseInt(year, 10);
@@ -241,7 +241,7 @@ export default function EditForm({ id }: { id: string }) {
       )}
 
       <div className={styles.description}>
-        <h1>Editar Jubilado / Sobreviviente</h1>
+        <h1 className={styles.mainTitle}>Editar Jubilado / Sobreviviente</h1>
       </div>
 
       <div className={`${styles.container} ${styles.formContainer}`}>

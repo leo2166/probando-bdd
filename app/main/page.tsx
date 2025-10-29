@@ -62,7 +62,7 @@ const isValidDDMMYYYY = (dateString: string | null): boolean => {
     return false; // Not a full DD/MM/AAAA format
   }
 
-  const [_, day, month, year] = match;
+  const [, day, month, year] = match;
   const d = parseInt(day, 10);
   const m = parseInt(month, 10);
   const y = parseInt(year, 10);
@@ -299,7 +299,7 @@ export default function Home() {
       )}
 
       <div className={styles.description}>
-        <h1>Gestión de Jubilados y Sobrevivientes</h1>
+        <h1 className={styles.mainTitle}>Gestión de Jubilados y Sobrevivientes</h1>
       </div>
 
       <div className={`${styles.container} ${styles.formContainer}`}>
