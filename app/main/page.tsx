@@ -341,7 +341,7 @@ export default function Home() {
       )}
 
       <div className={styles.container}>
-        <h2>Consulta, modificación y eliminación de registros + Reportes</h2>
+        <h2 className={styles.centeredTitle}>Consulta, modificación y eliminación de registros + Reportes</h2>
         <div className={styles.searchForm}>
           <input
             type="text"

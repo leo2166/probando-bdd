@@ -56,6 +56,49 @@ const formatDateToDDMMYYYY = (dateString: string | null): string => {
   return `${day}/${month}/${year}`;
 };
 
+const parseDateToYYYYMMDD = (dateString: string | null): string | null => {
+  if (!dateString) return null;
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    // Basic validation for day, month, year
+    if (parseInt(day) > 0 && parseInt(day) <= 31 &&
+        parseInt(month) > 0 && parseInt(month) <= 12 &&
+        parseInt(year) >= 1900 && parseInt(year) <= 2100) { // Adjust year range as needed
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+  return null;
+};
+
+const isValidDDMMYYYY = (dateString: string | null): boolean => {
+  if (!dateString) return true; // Empty string is valid (optional field)
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateString.match(regex);
+
+  if (!match) {
+    return false; // Not a full DD/MM/AAAA format
+  }
+
+  const [_, day, month, year] = match;
+  const d = parseInt(day, 10);
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+
+  if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) {
+    return false; // Invalid date components
+  }
+
+  // Further check for month-day validity (e.g., 31/02 is invalid)
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+    return false;
+  }
+
+  return true; // It's a valid DD/MM/AAAA date
+};
+
 // ... (resto de los helpers sin cambios) ...
 
 export default function EditForm({ id }: { id: string }) {
