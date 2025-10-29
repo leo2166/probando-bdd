@@ -31,6 +31,23 @@ const isValidDDMM = (dateString: string): boolean => {
   return true;
 };
 
+const formatDateToDDMMYYYY = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      return `${day}/${month}/${year}`;
+    }
+    return '';
+  }
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function ReportesPage() {
   const router = useRouter();
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
