@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from '../../main/main.module.css';
 import React from 'react';
 import CustomAlert from '../../components/CustomAlert'; // Importar el componente
-import type { PageProps } from 'next';
+
 
 // (El resto de las interfaces y helpers no cambia)
 interface Beneficiario {
@@ -58,7 +58,7 @@ const formatDateToDDMMYYYY = (dateString: string | null): string => {
 
 // ... (resto de los helpers sin cambios) ...
 
-export default function EditBeneficiarioPage({ params }: PageProps<{ id: string }>) {
+export default function EditBeneficiarioPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { id } = params;
   const [form, setForm] = useState<FormState>(initialFormState);
