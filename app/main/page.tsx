@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './main.module.css';
 import CustomAlert from '../components/CustomAlert'; // Importar el componente
+import { isValidDDMMYYYY, parseDateToYYYYMMDD } from '../utils/dateUtils';
 
 // (El resto de las interfaces y helpers no cambia)
 interface Beneficiario {
@@ -37,12 +38,6 @@ const initialFormState: FormState = {
     telefono: '',
 };
 
-const isValidDDMMYYYY = (dateString: string): boolean => {
-  if (!dateString) return true;
-  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!regex.test(dateString)) return false;
-  return parseDateToYYYYMMDD(dateString) !== null;
-};
 
 export default function Home() {
   const router = useRouter();

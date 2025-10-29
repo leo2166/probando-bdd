@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from '../../main/main.module.css';
 import React from 'react';
 import CustomAlert from '../../components/CustomAlert'; // Importar el componente
+import { isValidDDMMYYYY, parseDateToYYYYMMDD } from '../../utils/dateUtils';
 
 // (El resto de las interfaces y helpers no cambia)
 interface Beneficiario {
