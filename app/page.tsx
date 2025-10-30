@@ -40,7 +40,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={styles.input}
-            placeholder="Introduzca la clave"
+            placeholder="ingresa la clave"
           />
           <button type="submit" className={styles.button}>Acceder</button>
         </form>

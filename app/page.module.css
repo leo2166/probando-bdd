@@ -20,13 +20,13 @@
 .orgTitle {
   font-size: 1.5rem; /* Tamaño grande para el nombre de la asociación */
   font-weight: bold;
-  color: #4A4A4A;
+  color: #000000;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  color: #6c757d; /* Un gris más suave */
+  color: #000000; /* Un gris más suave */
   margin-bottom: 1.5rem;
   border-bottom: 1px solid #dee2e6;
   padding-bottom: 1rem;
@@ -35,7 +35,7 @@
 .title {
   margin-bottom: 2rem;
   font-size: 1.8rem;
-  color: #333;
+  color: #000000;
 }
 
 .input {
